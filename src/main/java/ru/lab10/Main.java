@@ -10,55 +10,114 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
+
 public class Main {
-    private static List<String[]> credentials = new ArrayList<>();
+    private List<User> users = new ArrayList<>();
+    private List<Product> products = new ArrayList<>();
+    private User user_logged;
 
     public static void main(String[] args) {
-        Init();
-        int choice;
+        Main program = new Main();
+        program.Init();
+        while (true) {
+            if (program.Login()){
+                break;
+            }
+        }
+        program.WriteCredentials();
+    }
+
+    private void Init() {
+        try {
+            ReadCredentials();
+            ReadProduct();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    private boolean Login() {
         Scanner scanner = new Scanner(System.in);
-        System.out.println("Введите свою роль: \n1 - Администратор\n2 - Кассис\n3 - Логист\n4 - Бухгалтер\n5 - Отдел кадров");
-        choice = scanner.nextInt();
         String login;
         String pass;
-        scanner.nextLine();
         System.out.println("Введите логин:");
         login = scanner.nextLine();
         System.out.println("Введите пароль:");
         pass = scanner.nextLine();
-        credentials.add(new String[]{login, pass, Integer.toString(choice)});
-        WriteCredentials();
-
-    }
-
-    private static void Init() {
-        try {
-            ReadCredentials();
-        } catch (IOException e) {
-            e.printStackTrace();
+        User userl = null;
+        for(User user : users) {
+            if (user.getLogin().equals(login)) {
+                userl = user;
+                break;
+            }
         }
+        boolean ret = false;
+        if (userl != null) {
+            ret = userl.checkPassword(pass);
+            if (ret) {
+                this.user_logged = userl;
+                System.out.println("Вы залогенны как " + userl.getLogin());
+            }
+        }
+        if (!ret) {
+            System.out.println("Ошибка. Логин или пароль недействительны!");
+        }
+        return ret;
     }
 
-    private static void ReadCredentials() throws IOException {
+    private void ReadCredentials() throws IOException {
         CSVReader credIn = null;
         try {
-            credIn = new CSVReader(new InputStreamReader(new FileInputStream("credentials.csv"), StandardCharsets.UTF_8));
+            credIn = new CSVReader(new InputStreamReader(new FileInputStream("users.csv"), StandardCharsets.UTF_8));
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
         String[] line;
         if (credIn != null) {
             while((line = credIn.readNext()) != null) {
-                credentials.add(line);
+                User user = new User(
+                        Integer.valueOf(line[0]),
+                        line[1],
+                        line[2],
+                        line[3],
+                        Byte.valueOf(line[4]),
+                        Integer.valueOf(line[5]),
+                        Integer.valueOf(line[6])) ;
+                this.users.add(user);
             }
         }
     }
 
-    private static void WriteCredentials() {
+    private void ReadProduct() throws IOException {
+        CSVReader productIn = null;
+        try {
+            productIn = new CSVReader(new InputStreamReader(new FileInputStream("products.csv"), StandardCharsets.UTF_8));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        String[] line;
+        if (productIn != null) {
+            while((line = productIn.readNext()) != null) {
+                Product product = new Product(
+                        line[0],
+                        line[1],
+                        Integer.valueOf(line[2]),
+                        Integer.valueOf(line[3]),
+                        Integer.valueOf(line[4]),
+                        line[5]) ;
+                this.products.add(product);
+            }
+        }
+    }
+
+    private void WriteCredentials() {
         CSVWriter credOut;
         try {
-            credOut = new CSVWriter(new OutputStreamWriter(new FileOutputStream("credentials.csv"), StandardCharsets.UTF_8));
-            credOut.writeAll(credentials);
+            credOut = new CSVWriter(new OutputStreamWriter(new FileOutputStream("users.csv"), StandardCharsets.UTF_8));
+            for(User user : this.users) {
+                credOut.writeNext(user.toStringArray());
+            }
             credOut.close();
         } catch (UnsupportedEncodingException e) {
             e.printStackTrace();
@@ -68,5 +127,14 @@ public class Main {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private void DoAction(){
+        String[][] avaible_actions = {
+                {"get_users", "edit_users", "get_products", "edit_prducts"},
+                {"get_products"},
+                {"edit_users_off"}
+
+        };
     }
 }
